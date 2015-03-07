@@ -1,19 +1,30 @@
 # views.py
 
+#################
+#### imports ####
+#################
 
 from flask import Flask, flash, redirect, render_template, request, \
     session, url_for
-from forms import AddDomainForm, RegisterForm, LoginForm
 from functools import wraps
 from flask.ext.sqlalchemy import SQLAlchemy
+from forms import AddDomainForm, RegisterForm, LoginForm
+
+
+################
+#### config ####
+################
 
 app = Flask(__name__)
 app.config.from_object('config')
-
-
 db = SQLAlchemy(app)
 
 from models import Domain, User
+
+
+##########################
+#### helper functions ####
+##########################
 
 def login_required(test):
     @wraps(test)
@@ -25,29 +36,15 @@ def login_required(test):
             return redirect(url_for('login'))
     return wrap
 
-@app.route("/register/", methods=['GET', 'POST'])
-def register():
-    error = None
-    form = RegisterForm(request.form)
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            new_user = User(
-                form.name.data,
-                form.email.data,
-                form.password.data,
-                )
-            db.session.add(new_user)
-            db.session.commit()
-            flash("Thanks for registering. Please Login.")
-            return redirect(url_for('login'))
-        else: 
-            return render_template('register.html', form=form, error=error)
-    if request.method == 'GET':
-        return render_template("register.html", form=form)
+
+################
+#### routes ####
+################
 
 @app.route('/logout/')
 def logout():
     session.pop('logged_in', None)
+    session.pop('user_id', None)
     flash('You are logged out. Bye. :(')
     return redirect(url_for('login'))
 
@@ -61,53 +58,82 @@ def login():
             u = User.query.filter_by(
                 name=request.form['name'],
                 password=request.form['password']
-                ).first()
+            ).first()
             if u is None:
-                error = "Invalid username or password"
-                return render_template("login.html",
+                error = 'Invalid username or password.'
+                return render_template(
+                    "login.html",
                     form=form,
-                    error=error)
-            else: 
+                    error=error
+                )
+            else:
                 session['logged_in'] = True
-                flash("You are logged in.")
-                return redirect(url_for("tasks"))
-        else: 
+                session['user_id'] = u.id
+                flash('You are logged in. Go Crazy.')
+                return redirect(url_for('domains'))
+        else:
             return render_template(
                 "login.html",
                 form=form,
-                error=error)
-    if request.method == "GET":
-        return render_template("login.html", form=form)
-        
+                error=error
+            )
     if request.method == 'GET':
-        return render_template('login.html')
+        return render_template('login.html', form=form)
 
 
-@app.route('/tasks/')
+@app.route('/domains/')
 @login_required
-def tasks():
+def domains():
     domain_names = db.session.query(Domain) 
     return render_template(
-        'tasks.html',
+        'domains.html',
         form=AddDomainForm(request.form),
         domain_names=domain_names
-        )
-    
-# Add new tasks:
-@app.route('/add/', methods=['POST'])
+    )
+
+
+# Add new domains:
+@app.route('/add/', methods=['GET', 'POST'])
 @login_required
-def new_task():
+def new_domain():
+    import datetime
+    error = None
     form = AddDomainForm(request.form)
     if request.method == 'POST':
-        new_domain = Domain(
-            form.name.data,
+        if form.validate_on_submit():
+            new_domain = Domain(
+                form.name.data,
+                datetime.datetime.utcnow(),
+                session['user_id']
             )
-        db.session.add(new_domain)
-        db.session.commit()
-        flash("New domain was succesfully posted. Thanks.")
-        return redirect(url_for('tasks'))
+            db.session.add(new_domain)
+            db.session.commit()
+            flash('New entry was successfully posted. Thanks.')
+            return redirect(url_for('domains'))
+        else:
+            return render_template('domains.html', form=form, error=error)
+    if request.method == 'GET':
+        return render_template('domains.html', form=form)
 
 
-
-
+# User Registration:
+@app.route('/register/', methods=['GET', 'POST'])
+def register():
+    error = None
+    form = RegisterForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_user = User(
+                form.name.data,
+                form.email.data,
+                form.password.data,
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Thanks for registering. Please login.')
+            return redirect(url_for('login'))
+        else:
+            return render_template('register.html', form=form, error=error)
+    if request.method == 'GET':
+        return render_template('register.html', form=form)
 

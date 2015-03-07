@@ -1,0 +1,44 @@
+{% extends "template.html" %}
+{% block content %}
+  <h1>Welcome to FlaskTaskr</h1>
+  <br>
+  <a href="/logout">Logout</a>
+  <div class="add-task">
+    <h3>Add a new Domain:</h3>
+      <form action="{{ url_for('new_domain') }}" method="post">
+        {{ form.csrf_token }}
+        <p>{{ form.name.label }}: {{ form.name }}</p>
+        <p><input type="submit" value="Submit"></p>
+      </form>
+  </div>
+  <div class="entries">
+    <br>
+    <br>
+    <h2>Domains:</h2>
+    <div class="datagrid">
+      <table>
+        <thead>
+          <tr>
+            <th width="200px"><strong>Domain Name</strong></th>
+
+            <th width="100px"><strong>Posted Date</strong></th>
+
+            <th width="90px"><strong>Posted By</strong></th>
+
+          </tr>
+        </thead>
+        {% for o in domain_names %}
+          <tr>
+            <td width="200px">{{ o.name }}</td>
+
+            <td width="100px">{{ o.posted_date }}</td>
+
+            <td width="90px">{{ o.poster.name }}</td>
+
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+  <div>
+{% endblock %}
