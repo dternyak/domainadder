@@ -8,6 +8,6 @@ from datetime import date
 db.create_all()
 
 
-db.session.add(Domain("Some domain name"))
+#db.session.add(Domain("Some domain name"))
 
 db.session.commit()
