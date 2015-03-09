@@ -9,7 +9,7 @@ from flask import Flask, flash, redirect, render_template, request, \
 from functools import wraps
 from flask.ext.sqlalchemy import SQLAlchemy
 from forms import AddDomainForm, RegisterForm, LoginForm
-
+from sqlalchemy.exc import IntegrityError
 
 ################
 #### config ####
@@ -25,6 +25,12 @@ from models import Domain, User
 ##########################
 #### helper functions ####
 ##########################
+
+def flash_errors(form):
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(u"Error in the %s field - %s" % (
+                getattr(form,field).label.text, error), 'error')
 
 def login_required(test):
     @wraps(test)
@@ -128,10 +134,14 @@ def register():
                 form.email.data,
                 form.password.data,
             )
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Thanks for registering. Please login.')
-            return redirect(url_for('login'))
+            try:
+                db.session.add(new_user)
+                db.session.commit()
+                flash('Thanks for registering. Please login.')
+                return redirect(url_for('login'))
+            except IntegrityError:
+                error = "That username and/or email already exist"
+                return render_template('register.html', form=form, error=error)
         else:
             return render_template('register.html', form=form, error=error)
     if request.method == 'GET':

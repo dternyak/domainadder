@@ -7,7 +7,15 @@
     <h3>Add a new Domain:</h3>
       <form action="{{ url_for('new_domain') }}" method="post">
         {{ form.csrf_token }}
-        <p>{{ form.name.label }}: {{ form.name }}</p>
+        <p>{{ form.name.label }}: {{ form.name }}
+          <span class="error">
+          {% if form.name.errors %}
+            {% for error in form.name.errors %}
+              {{ error }}
+            {% endfor %}
+          {% endif %}
+        </span>
+        </p>
         <p><input type="submit" value="Submit"></p>
       </form>
   </div>
